@@ -34,13 +34,9 @@ python --version
 
 ---
 
-### Edit base.in as version binding for libraries
+### Use pip-tools to render exact libraries version
 
 - Edit `base.in` to change dependencies
-
----
-
-### Use pip-tools to render exact libraries version
 
 - Install `pip-tools` with pip
 ```bash
