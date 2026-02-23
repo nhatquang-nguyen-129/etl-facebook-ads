@@ -2,6 +2,78 @@
 
 ## Problem statements
 
+
+Production Runtime (Main Entrypoint)
+Purpose
+
+Serve as the official production entrypoint for Facebook Ads ETL
+
+Designed to be deployed and executed on Google Cloud (Cloud Run / scheduled job)
+
+Resolve execution time window dynamically via MODE environment variable
+
+Load required secrets (account_id, access_token) from Google Secret Manager
+
+Trigger full DAG execution (dags_facebook_ads) for resolved time range
+
+Characteristics
+
+Not intended for manual historical reprocessing
+
+Not designed for granular per-flow execution
+
+Execution window is strictly controlled via predefined MODE mappings
+
+All required environment variables must be provided:
+
+Required environment variables:
+
+COMPANY
+
+PROJECT
+
+DEPARTMENT
+
+ACCOUNT
+
+MODE
+
+If any of the above variables are missing, execution will fail immediately.
+
+Time Window Resolution
+
+The runtime resolves start_date and end_date automatically based on MODE.
+
+Supported modes:
+
+today
+
+last3days
+
+last7days
+
+thismonth
+
+lastmonth
+
+Custom date ranges are not supported in this entrypoint.
+
+For historical reprocessing or custom time windows, use the Backfill CLI modules instead.
+
+Deployment Context
+
+This entrypoint is primarily intended to:
+
+Run inside Cloud Run
+
+Be triggered by Cloud Scheduler
+
+Execute in production environment
+
+Operate using Application Default Credentials provided by the runtime
+
+Local execution is technically possible but not recommended outside controlled debugging scenarios.
+
 Multi-thread Execution and Facebook Ads SDK Initialization Strategy
 Background
 

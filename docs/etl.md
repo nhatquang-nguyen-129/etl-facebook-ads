@@ -1,4 +1,4 @@
-# ETL Architecture and Workflow for Facebook Ads
+# ETL Architecture for Facebook Ads
 
 ## Purpose
 
