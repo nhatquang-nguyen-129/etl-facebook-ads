@@ -1,12 +1,11 @@
-from pathlib import Path
+import os
 import sys
+from pathlib import Path
 ROOT_FOLDER_LOCATION = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT_FOLDER_LOCATION))
 
 import argparse
 from datetime import datetime
-import logging
-import os
 
 from google.cloud import secretmanager
 from google.api_core.client_options import ClientOptions

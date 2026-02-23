@@ -23,7 +23,7 @@ if not all([
     DEPARTMENT,
     ACCOUNT,
 ]):
-    raise EnvironmentError("❌ [BACKFILL] Failed to execute Facebook Ads ad insights update due to missing required environment variables.")
+    raise EnvironmentError("❌ [BACKFILL] Failed to execute Facebook Ads ad insights backfill due to missing required environment variables.")
 
 def backfill():
     """
@@ -62,10 +62,10 @@ def backfill():
         start_date = datetime.strptime(args.start_date, "%Y-%m-%d").strftime("%Y-%m-%d")
         end_date = datetime.strptime(args.end_date, "%Y-%m-%d").strftime("%Y-%m-%d")
     except ValueError:
-        raise ValueError("❌ [BACKFILL] Failed to execute Facebook Ads ad insights update due to start_date and end_date must be in YYYY-MM-DD format.")
+        raise ValueError("❌ [BACKFILL] Failed to execute Facebook Ads ad insights backfill due to start_date and end_date must be in YYYY-MM-DD format.")
 
     if start_date > end_date:
-        raise ValueError("❌ [BACKFILL] Failed to execute Facebook Ads ad insights update due to start_date must be less than or equal to end_date.")
+        raise ValueError("❌ [BACKFILL] Failed to execute Facebook Ads ad insights backfill due to start_date must be less than or equal to end_date.")
 
     print(
         "🔄 [BACKFILL] Triggering to execute Facebook Ads ad insights backfill for "
