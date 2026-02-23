@@ -1,6 +1,7 @@
 # Dependencies Conflict Management
 
 ## Purpose
+
 - Installing or running Python libraries with an unsupported Python version may cause pip install errors
 
 - Installing or running Python libraries with an unsupported Python version may cause silent incompatibilities
@@ -36,7 +37,7 @@ python --version
 
 ### Use pip-tools to render exact libraries version
 
-- Edit `base.in` to change dependencies
+- Edit `base.in` to change dependencies instead `.txt` files manually to avoid conflict
 
 - Install `pip-tools` with pip
 ```bash
@@ -52,5 +53,3 @@ pip-compile requirements/base.in -o requirements/base.txt
 ```bash
 pip install -r requirements/base.txt
 ```
-
-- Do NOT edit `.txt` files manually to avoid conflict
