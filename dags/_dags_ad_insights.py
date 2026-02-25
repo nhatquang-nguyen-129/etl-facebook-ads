@@ -6,7 +6,6 @@ sys.path.append(str(ROOT_FOLDER_LOCATION))
 sys.stdout.reconfigure(encoding="utf-8")
 
 from datetime import datetime, timedelta
-import logging
 import pandas as pd
 import time
 
@@ -39,14 +38,12 @@ def dags_ad_insights(
     start_date: str,
     end_date: str,
 ):
-    msg = (
+    print(
         "🔄 [DAGS] Trigger to update Facebook Ads ad insights with account_id "
         f"{account_id} from "
         f"{start_date} to "
         f"{end_date}..."
     )
-    print(msg)
-    logging.info(msg)
 
 # ETL for Facebook Ads ad insights
     DAGS_INSIGHTS_ATTEMPTS = 3
@@ -64,14 +61,12 @@ def dags_ad_insights(
             try:
                 
     # Extract
-                msg = (
+                print(
                     "🔄 [DAGS] Trigger to extract Facebook Ads ad insights from account_id "
                     f"{account_id} at "
                     f"{dags_split_date} for "
                     f"{attempt} attempt(s)..."
-                )
-                print(msg)
-                logging.info(msg)                
+                )            
                 
                 insights = extract_ad_insights(
                     access_token=access_token,
@@ -81,24 +76,20 @@ def dags_ad_insights(
                 )
 
                 if insights.empty:
-                    msg = (
+                    print(
                         "⚠️ [DAGS] No Facebook Ads ad insights returned from account_id "
                         f"{account_id} then DAG execution "
                         f"{dags_split_date} will be skipped."
                     )
-                    print(msg)
-                    logging.warning(msg)
                     break
 
     # Transform
-                msg = (
+                print(
                     "🔄 [DAGS] Trigger to transform Facebook Ads ad insights from "
                     f"{account_id} with "
                     f"{dags_split_date} for "
                     f"{len(insights)} row(s)..."
-                )
-                print(msg)
-                logging.info(msg)                
+                )         
 
                 insights = transform_ad_insights(insights)
 
@@ -112,14 +103,12 @@ def dags_ad_insights(
                     f"{COMPANY}_table_facebook_{DEPARTMENT}_{ACCOUNT}_ad_m{month:02d}{year}"
                 )
 
-                msg = (
+                print(
                     "🔄 [DAGS] Trigger to load Facebook Ads ad insights from account_id "
                     f"{account_id} for "
                     f"{dags_split_date} to direction "
                     f"{_ad_insights_direction}..."
                 )
-                print(msg)
-                logging.info(msg)
 
                 daily_ad_ids = set(insights["ad_id"].dropna().unique())
                 total_ad_ids.update(daily_ad_ids)
@@ -133,13 +122,11 @@ def dags_ad_insights(
 
             except Exception as e:
                 retryable = getattr(e, "retryable", False)
-                msg = (
+                print(
                     f"⚠️ [DAGS] Failed to extract Facebook Ads ad insights for {dags_split_date} in "
                     f"{attempt}/{DAGS_INSIGHTS_ATTEMPTS} attempt(s) due to "
                     f"{e}."
                 )
-                print(msg)
-                logging.warning(msg)
 
                 if not retryable:
                     raise RuntimeError(
