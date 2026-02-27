@@ -1,14 +1,14 @@
 import sys
-import time
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, as_completed
-
 ROOT_FOLDER_LOCATION = Path(__file__).resolve().parents[2]
 sys.path.append(str(ROOT_FOLDER_LOCATION))
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import contextlib
+import io
+
 from dags._dags_campaign_insights import dags_campaign_insights
 from dags._dags_ad_insights import dags_ad_insights
-
 
 def dags_facebook_ads(
     *,
@@ -18,57 +18,90 @@ def dags_facebook_ads(
     end_date: str,
     max_workers: int = 2,
 ):
-    print(
-        f"🔄 [DAGS] Trigger Facebook Ads DAGs for {account_id} "
-        f"from {start_date} → {end_date} | workers={max_workers}"
-    )
+    """
+    DAG Orchestration for Facebook Ads
+    ---
+    Principles:
+        1. Initialize parallel execution with worker pool
+        2. Submit campaign-level and ad-level tasks concurrently
+        3. Monitor task completion using asynchronous future handling
+        4. Capture execution status and surface task-level failures
+        5. Finalize DAG execution with total runtime reporting
+    ---
+    Returns:
+        1. None:
+    """
 
     tasks = {
         "campaign_insights": dags_campaign_insights,
         "ad_insights": dags_ad_insights,
     }
 
-    start_time = time.time()
+    for task in tasks:
+        print(
+            " 🔄 [DAGS] Triggering to execute Facebook Ads "
+            f"{task} task with isolated stdout buffer..."
+        )
+
     futures = {}
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # submit ALL tasks
-        for name, fn in tasks.items():
-            print(f"▶️  [DAGS:{name}] RUNNING")
+
+        for task, fn in tasks.items():
+
+            buffer = io.StringIO()
+
             future = executor.submit(
-                fn,
-                access_token=access_token,
-                account_id=account_id,
-                start_date=start_date,
-                end_date=end_date,
+                lambda fn=fn, buffer=buffer: (
+                    contextlib.redirect_stdout(buffer).__enter__(),
+                    fn(
+                        access_token=access_token,
+                        account_id=account_id,
+                        start_date=start_date,
+                        end_date=end_date,
+                    ),
+                    contextlib.redirect_stdout(buffer).__exit__(None, None, None),
+                    buffer.getvalue(),
+                )
             )
-            futures[future] = name
+
+            futures[future] = (task, buffer)
 
         completed = set()
 
         for future in as_completed(futures):
-            name = futures[future]
-            completed.add(name)
+            task, buffer = futures[future]
+            completed.add(task)
 
-            print("\n" + "=" * 120)
-            print(f"[DAGS] TASK FINISHED: {name}")
-            print("=" * 120)
+            status = "SUCCESS"
+            output = ""
 
             try:
-                future.result()
-                print(f"✅ [DAGS:{name}] COMPLETED")
+                _, _, _, output = future.result()
             except Exception as e:
-                print(f"❌ [DAGS:{name}] FAILED")
-                print(str(e))
+                status = "FAILED"
+                output = str(e)
 
-            print("=" * 120)
+            if status == "SUCCESS":
+                print(
+                     "\n✅ [DAGS] Successfully executed Facebook Ads " 
+                      f"{task} task with isolated stdout buffer."
+                    )
+            else:
+                print(
+                    "\n❌ [DAGS] Failed to execute Facebook Ads "
+                    f"{task} task with isolated stdout buffer."
+                )
+            print("-" * 3)
 
-            remaining = [n for n in tasks if n not in completed]
-            if remaining:
-                print("\n⏳ Still running:")
-                for r in remaining:
-                    print(f"   ▶️  [DAGS:{r}] RUNNING")
-                print()
+            if output:
+                print(output.strip())
 
-    total_elapsed = round(time.time() - start_time, 2)
-    print(f"🏁 [DAGS] Facebook Ads update finished in {total_elapsed}s")
+            print("-" * 3 + "\n")
+
+            remaining = len(tasks) - len(completed)
+            print(
+                "\n⏳ [DAGS] Waiting for "
+                f"{remaining} Facebook Ads remaining tasks..."
+            )
+            print("-" * 3 + "\n")
