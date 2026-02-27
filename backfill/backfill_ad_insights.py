@@ -28,13 +28,14 @@ if not all([
 def backfill():
     """
     Backfill Facebook Ads ad insights
-    ---------
-    Workflow:
+    ---
+    Principles:
         1. Resolve execution time window form CLI argument --start_date and --end_date
         2. Validate OS environment variables
         3. Load secrets from GCP Secret Manager
         4. Initialize Facebook Ads SDK wrapper exactly once
         5. Dispatch execution to DAG orchestrator
+    ---
     Return:
         None
     """
