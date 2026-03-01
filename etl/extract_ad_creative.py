@@ -3,8 +3,6 @@ from pathlib import Path
 ROOT_FOLDER_LOCATION = Path(__file__).resolve().parents[2]
 sys.path.append(str(ROOT_FOLDER_LOCATION))
 
-import time
-import logging
 import pandas as pd
 
 from facebook_business.api import FacebookAdsApi
@@ -20,55 +18,34 @@ def extract_ad_creative(
 ) -> pd.DataFrame:
     """
     Extract Facebook Ads ad creative
-    ---------
-    Workflow:
-        1. Validate input ad_ids
+    ---
+    Principles:
+        1. Initialize Facebook Ads client
         2. Loop each ad_id
         3. Make API call for Ad(ad_id) endpoint
         4. Append extracted JSON data to list[dict]
         5. Enforce List[dict] to DataFrame
-    ---------
+    ---
+    Returns:    
         1. DataFrame:
             Flattened ad creative records
     """
 
-    start_time = time.time()
-    rows: list[dict] = []
-    failed_ad_ids: list[str] = []
-    retryable = False
-
-    # Validate input    
+    # Validate input
     if not ad_ids:
-        msg = (
+        print(
             "⚠️ [EXTRACT] No input ad_ids for Facebook Ads account_id "
-            f"{account_id} then empty DataFrame returned."
+            f"{account_id} then extraction will be suspended."
         )
-        print(msg)
-        logging.warning(msg)
 
-        df = pd.DataFrame(
-            columns=[
-                "account_id",
-                "ad_id",
-                "creative_id",
-                "thumbnail_url",
-            ]
-        )
-        df.failed_ad_ids = []
-        df.retryable = False
-        df.time_elapsed = round(time.time() - start_time, 2)
-        df.rows_input = 0
-        df.rows_output = 0
-        return df
+        return pd.DataFrame()
 
     # Initialize Facebook Ads SDK client
     try:
-        msg = (
-            "🔍 [EXTRACT] Initializing Facebook Ads SDK client with account_id "
-            f"{account_id} for ad creative extraction..."
+        print(
+            "🔍 [EXTRACT] Initializing Facebook Ads client with account_id "
+            f"{account_id}..."
         )
-        print(msg)
-        logging.info(msg)
 
         ad_creative_session = FacebookSession(
             access_token=access_token,
@@ -77,29 +54,29 @@ def extract_ad_creative(
 
         ad_creative_api = FacebookAdsApi(ad_creative_session)
 
-        msg = (
-            "✅ [EXTRACT] Successfully initialized Facebook Ads SDK client for account_id "
-            f"{account_id} for ad creative extraction."
+        print(
+            "✅ [EXTRACT] Successfully initialized Facebook Ads client for account_id "
+            f"{account_id}."
         )
-        print(msg)
-        logging.info(msg)
 
     except Exception as e:
-        raise RuntimeError(
-            "❌ [EXTRACT] Failed to initialize Facebook Ads SDK client for account_id "
-            f"{account_id} for ad creative extraction due to "
+        error = RuntimeError(
+            "❌ [EXTRACT] Failed to initialize Facebook Ads client for account_id "
+            f"{account_id} due to "
             f"{e}."
-        ) from e
+        )
+        error.retryable = False
+        raise error from e
 
     # Make Facebook Ads API call for ad creative
-    msg = (
+    rows: list[dict] = []
+    
+    print(
         "🔍 [EXTRACT] Extracting Facebook Ads ad creative for account_id "
         f"{account_id} with "
         f"{len(ad_ids)} ad_id(s)..."
     )
-    print(msg)
-    logging.info(msg)
-        
+
     for ad_id in ad_ids:
         try:
             ad = Ad(ad_id, api=ad_creative_api).api_get(fields=["creative"])
@@ -139,15 +116,17 @@ def extract_ad_creative(
                 http_status = e.http_status()
             except Exception:
                 pass
-            
-        # Expired token error
-            if api_error_code == 190:
-                raise RuntimeError(
-                    "❌ [EXTRACT] Failed to extract Facebook Ads ad creative for account_id "
-                    f"{account_id} due to expired or invalid access token then manual token refresh is required."
-                )
 
-        # Unexpected retryable API error
+        # Expired token
+            if api_error_code == 190:
+                error = RuntimeError(
+                    "❌ [EXTRACT] Failed to extract Facebook Ads ad creative for account_id "
+                    f"{account_id} due to expired or invalid access token."
+                )
+                error.retryable = False
+                raise error from e
+
+        # Retryable API error
             if (
                 (http_status and http_status >= 500)
                 or api_error_code in {
@@ -158,55 +137,38 @@ def extract_ad_creative(
                     80000
                 }
             ):
-                failed_ad_ids.append(ad_id)
-                retryable = True
-
-                msg = (
+                error = RuntimeError(
                     "⚠️ [EXTRACT] Failed to extract Facebook Ads ad creative for ad_id "
                     f"{ad_id} due to API error "
                     f"{e} then this request is eligible to retry."
                 )
-                print(msg)
-                logging.warning(msg)
+                error.retryable = True
+                raise error from e
 
-                rows.append(
-                    {
-                        "account_id": account_id,
-                        "ad_id": ad_id,
-                        "creative_id": None,
-                        "thumbnail_url": None,
-                    }
-                )
-                continue
-            
-        # Unexpected non-retryable API error
-            raise RuntimeError(
+        # Non-retryable API error
+            error = RuntimeError(
                 "❌ [EXTRACT] Failed to extract Facebook Ads ad creative for ad_id "
                 f"{ad_id} due to API error "
-                f"{e} then this request is no eligible to retry."
-            ) from e
+                f"{e} then this request is not eligible to retry."
+            )
+            error.retryable = False
+            raise error from e
 
         # Unknown non-retryable error
-        except Exception as e:           
-            raise RuntimeError(
+        except Exception as e:
+            error = RuntimeError(
                 "❌ [EXTRACT] Failed to extract Facebook Ads creative for ad_id "
                 f"{ad_id} due to "
                 f"{e}."
-            ) from e
+            )
+            error.retryable = False
+            raise error from e
 
     df = pd.DataFrame(rows)
 
-    msg = (
+    print(
         "✅ [EXTRACT] Successfully extracted "
         f"{len(df)}/{len(ad_ids)} row(s) of Facebook Ads ad creative."
     )
-    print(msg)
-    logging.info(msg)   
-    
-    df.failed_ad_ids = failed_ad_ids
-    df.retryable = retryable
-    df.time_elapsed = round(time.time() - start_time, 2)
-    df.rows_input = len(ad_ids)
-    df.rows_output = len(df)
 
     return df
