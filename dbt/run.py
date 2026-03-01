@@ -1,10 +1,9 @@
+import os
 import sys
 from pathlib import Path
 ROOT_FOLDER_LOCATION = Path(__file__).resolve().parents[0]
 sys.path.append(str(ROOT_FOLDER_LOCATION))
 
-import logging
-import os
 import subprocess
 
 def dbt_facebook_ads(
@@ -13,15 +12,17 @@ def dbt_facebook_ads(
     select: str
 ):
     """
-    Run dbt for Facebook Ads
-    ---------
-    Workflow:
-        1. Initialize dbt execution environment
-        2. Trigger dbt build command for dbt models
-        3. Capture dbt execution logs with stdout and stderr
-    ---------
+    DBT Execution for Facebook Ads
+    ---
+    Principles:
+        1. Initialize dbt CLI execution environment
+        2. Construct dbt build command with model selection
+        3. Execute dbt build within project directory context
+        4. Capture subprocess execution status and surface failures
+        5. Finalize execution with success confirmation
+    ---
     Returns:
-        None
+        1. None:
     """
 
     cmd = [
@@ -31,13 +32,11 @@ def dbt_facebook_ads(
         "--select", select,
     ]
 
-    msg = (
+    print(
         "🔄 [DBT] Executing dbt build for Facebook Ads "
         f"{select} insights to Google Cloud Project "
         f"{google_cloud_project}..."
     )
-    print(msg)
-    logging.info(msg)
 
     try:
         subprocess.run(
@@ -47,13 +46,11 @@ def dbt_facebook_ads(
             check=True,
         )
 
-        msg = (
+        print(
             "✅ [DBT] Successfully executed dbt build for Facebook Ads "
             f"{select} insights to Google Cloud Project "
             f"{google_cloud_project}."
         )
-        print(msg)
-        logging.info(msg)
 
     except subprocess.CalledProcessError as e:
         raise RuntimeError(
