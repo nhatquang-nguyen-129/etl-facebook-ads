@@ -3,8 +3,6 @@ from pathlib import Path
 ROOT_FOLDER_LOCATION = Path(__file__).resolve().parents[2]
 sys.path.append(str(ROOT_FOLDER_LOCATION))
 
-import time
-import logging
 import pandas as pd
 
 from facebook_business.api import FacebookAdsApi
@@ -21,8 +19,8 @@ def extract_adset_metadata(
     """
     Extract Facebook Ads adset metadata
     ---------
-    Workflow:
-        1. Validate input adset_ids
+    Principles:
+        1. Initialize Facebook Ads client
         2. Make API call for AdAccount endpoint
         3. Make API call for AdSet(adset_id) endpoint
         4. Append extracted JSON data to list[dict]
@@ -33,74 +31,49 @@ def extract_adset_metadata(
             Flattened adset metadata records
     """
 
-    start_time = time.time()
-    rows: list[dict] = []
-    failed_adset_ids: list[str] = []
-    retryable = False
-
     # Validate input
     if not adset_ids:
-        msg = (
+        print(
             "⚠️ [EXTRACT] No input adset_ids for Facebook Ads account_id "
-            f"{account_id} then empty DataFrame returned."
+            f"{account_id} then extraction will be suspended."
         )
-        print(msg)
-        logging.warning(msg)
-        
-        df = pd.DataFrame(
-            columns=[
-                "adset_id",
-                "adset_name",
-                "campaign_id",
-                "account_id",
-                "account_name",
-            ]
-        )
-        df.failed_adset_ids = []
-        df.retryable = False
-        df.time_elapsed = round(time.time() - start_time, 2)
-        df.rows_input = 0
-        df.rows_output = 0
-        return df
+
+        return pd.DataFrame()
 
     # Initialize Facebook Ads SDK client
     try:
-        msg = (
-            "🔍 [EXTRACT] Initializing Facebook Ads SDK client with account_id "
-            f"{account_id} for adset metadata extraction..."
+        print(
+            "🔍 [EXTRACT] Initializing Facebook Ads client with account_id "
+            f"{account_id}..."
         )
-        print(msg)
-        logging.info(msg)
 
-        adset_metadata_session = FacebookSession(
+        ad_creative_session = FacebookSession(
             access_token=access_token,
             timeout=180,
         )
 
-        adset_metadata_api = FacebookAdsApi(adset_metadata_session)
+        adset_metadata_api = FacebookAdsApi(ad_creative_session)
 
-        msg = (
-            "✅ [EXTRACT] Successfully initialized Facebook Ads SDK client for account_id "
-            f"{account_id} for adset metadata extraction."
+        print(
+            "✅ [EXTRACT] Successfully initialized Facebook Ads client for account_id "
+            f"{account_id}."
         )
-        print(msg)
-        logging.info(msg)
 
     except Exception as e:
-        raise RuntimeError(
-            "❌ [EXTRACT] Failed to initialize Facebook Ads SDK client for account_id "
-            f"{account_id} for adset metadata extraction due to "
+        error = RuntimeError(
+            "❌ [EXTRACT] Failed to initialize Facebook Ads client for account_id "
+            f"{account_id} due to "
             f"{e}."
-        ) from e
-
-    # Make Facebook Ads API call for ad account information
+        )
+        error.retryable = False
+        raise error from e
+    
+    # Make Facebook Ads API call for ad account
     try:
-        msg = (
-            "🔍 [EXTRACT] Extracting Facebook Ads account_name for account_id "
+        print(
+            "🔍 [EXTRACT] Extracting Facebook Ads ad account informatio for account_id "
             f"{account_id}..."
         )
-        print(msg)
-        logging.info(msg)
 
         account_info = AdAccount(
             f"act_{account_id}",
@@ -109,13 +82,11 @@ def extract_adset_metadata(
 
         account_name = account_info.get("name")
 
-        msg = (
+        print(
             "✅ [EXTRACT] Successfully extracted Facebook Ads account_name "
             f"{account_name} for account_id "
             f"{account_id}."
         )
-        print(msg)
-        logging.info(msg)
 
     except FacebookRequestError as e:
         api_error_code = None
@@ -127,14 +98,16 @@ def extract_adset_metadata(
         except Exception:
             pass
 
-        # Expired token error
+        # Expired token
         if api_error_code == 190:
-            raise RuntimeError(
+            error = RuntimeError(
                 "❌ [EXTRACT] Failed to extract Facebook Ads account_name for account_id "
-                f"{account_id} due to expired or invalid access token then manual token refresh is required."
-            ) from e
-        
-        # Unexpected retryable API error
+                f"{account_id} due to expired or invalid access token."
+            )
+            error.retryable = False
+            raise error from e
+
+        # Retryable API error
         if (
             (http_status and http_status >= 500)
             or api_error_code in {
@@ -145,27 +118,41 @@ def extract_adset_metadata(
                 80000
             }
         ):
-            raise RuntimeError(
+            error = RuntimeError(
                 "⚠️ [EXTRACT] Failed to extract Facebook Ads account_name for account_id "
                 f"{account_id} due to API error "
                 f"{e} then this request is eligible to retry."
-            ) from e
+            )
+            error.retryable = True
+            raise error from e
 
-        # Unexpected non-retryable API error
-        raise RuntimeError(
+        # Non-retryable API error
+        error = RuntimeError(
             "❌ [EXTRACT] Failed to extract Facebook Ads account_name for account_id "
             f"{account_id} due to API error "
             f"{e} then this request is not eligible to retry."
-        ) from e
+        )
+        error.retryable = False
+        raise error from e
+
+        # Unknown non-retryable error
+    except Exception as e:
+        error = RuntimeError(
+            "❌ [EXTRACT] Failed to extract Facebook Ads account_name for account_id "
+            f"{account_id} due to "
+            f"{e}."
+        )
+        error.retryable = False
+        raise error from e
 
     # Make Facebook Ads API call for adset metadata
-    msg = (
+    rows: list[dict] = []
+
+    print(
         "🔍 [EXTRACT] Extracting Facebook Ads adset metadata for account_id "
         f"{account_id} with "
         f"{len(adset_ids)} adset_id(s)..."
     )
-    print(msg)
-    logging.info(msg)
 
     for adset_id in adset_ids:
         try:
@@ -201,74 +188,58 @@ def extract_adset_metadata(
             except Exception:
                 pass
 
-        # Expired token error
+        # Expired token
             if api_error_code == 190:
-                raise RuntimeError(
+                error = RuntimeError(
                     "❌ [EXTRACT] Failed to extract Facebook Ads adset metadata for account_id "
-                    f"{account_id} due to expired or invalid access token then manual token refresh is required."
-                ) from e
+                    f"{account_id} due to expired or invalid access token."
+                )
+                error.retryable = False
+                raise error from e
 
-        # Unexpected retryable API error
+        # Retryable API error
             if (
                 (http_status and http_status >= 500)
                 or api_error_code in {
-                    1, 
-                    2, 
-                    4, 
-                    17, 
-                    80000
+                    1,
+                    2,
+                    4,
+                    17,
+                    80000,
                 }
             ):
-                failed_adset_ids.append(adset_id)
-                retryable = True
-
-                msg = (
+                error = RuntimeError(
                     "⚠️ [EXTRACT] Failed to extract Facebook Ads adset metadata for adset_id "
                     f"{adset_id} due to API error "
                     f"{e} then this request is eligible to retry."
                 )
-                print(msg)
-                logging.warning(msg)
+                error.retryable = True
+                raise error from e
 
-                rows.append(
-                    {
-                        "adset_id": adset_id,
-                        "adset_name": None,
-                        "campaign_id": None,
-                        "account_id": account_id,
-                        "account_name": account_name,
-                    }
-                )
-                continue
-
-        # Unexpected non-retryable API error
-            raise RuntimeError(
+        # Non-retryable API error
+            error = RuntimeError(
                 "❌ [EXTRACT] Failed to extract Facebook Ads adset metadata for adset_id "
                 f"{adset_id} due to API error "
                 f"{e} then this request is not eligible to retry."
-            ) from e
+            )
+            error.retryable = False
+            raise error from e
 
-        # Unknown non-retryable error        
+        # Unknown non-retryable error
         except Exception as e:
-            raise RuntimeError(
+            error = RuntimeError(
                 "❌ [EXTRACT] Failed to extract Facebook Ads adset metadata for adset_id "
                 f"{adset_id} due to "
                 f"{e}."
-            ) from e
+            )
+            error.retryable = False
+            raise error from e
 
     df = pd.DataFrame(rows)
 
-    msg = (
+    print(
         "✅ [EXTRACT] Successfully extracted "
         f"{len(df)}/{len(adset_ids)} row(s) of Facebook Ads adset metadata."
     )
-    print(msg)
-    logging.info(msg)  
-
-    df.failed_adset_ids = failed_adset_ids
-    df.retryable = retryable
-    df.time_elapsed = round(time.time() - start_time, 2)
-    df.rows_input = len(adset_ids)
-    df.rows_output = len(df)
 
     return df
