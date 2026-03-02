@@ -4,7 +4,6 @@ ROOT_FOLDER_LOCATION = Path(__file__).resolve().parents[2]
 sys.path.append(str(ROOT_FOLDER_LOCATION))
 
 import time
-import logging
 import pandas as pd
 
 from facebook_business.api import FacebookAdsApi
@@ -21,8 +20,8 @@ def extract_ad_insights(
     """
     Extract Facebook Ads ad insights
     ---------
-    Workflow:
-        1. Validate input account_id
+    Principles:
+        1. Initialize Facebook Ads client
         2. Validate input start_date and end_date
         3. Make API call for AdAccount(account_id).get_insights endpoint (level=ad)
         4. Append extracted JSON data to list[dict]
@@ -33,8 +32,7 @@ def extract_ad_insights(
             Flattened ad insights records
     """
 
-    start_time = time.time()
-
+    # Validate input
     fields = [
         "account_id",
         "campaign_id",        
@@ -56,44 +54,40 @@ def extract_ad_insights(
 
     # Initialize Facebook Ads SDK client
     try:
-        msg = (
-            "🔍 [EXTRACT] Initializing Facebook Ads SDK client with account_id "
-            f"{account_id} for ad insights extraction..."
+        print(
+            "🔍 [EXTRACT] Initializing Facebook Ads client with account_id "
+            f"{account_id}..."
         )
-        print(msg)
-        logging.info(msg)
 
-        ad_insights_session = FacebookSession(
+        ad_creative_session = FacebookSession(
             access_token=access_token,
             timeout=180,
         )
 
-        ad_insights_api = FacebookAdsApi(ad_insights_session)
+        ad_insights_api = FacebookAdsApi(ad_creative_session)
 
-        msg = (
-            "✅ [EXTRACT] Successfully initialized Facebook Ads SDK client for account_id "
-            f"{account_id} for ad insights extraction."
+        print(
+            "✅ [EXTRACT] Successfully initialized Facebook Ads client for account_id "
+            f"{account_id}."
         )
-        print(msg)
-        logging.info(msg)
 
     except Exception as e:
-        raise RuntimeError(
-            "❌ [EXTRACT] Failed to initialize Facebook Ads SDK client for account_id "
-            f"{account_id} for ad insights extraction due to "
+        error = RuntimeError(
+            "❌ [EXTRACT] Failed to initialize Facebook Ads client for account_id "
+            f"{account_id} due to "
             f"{e}."
-        ) from e
+        )
+        error.retryable = False
+        raise error from e
 
     # Make Facebook Ads API call for ad insights
     try:
-        msg = (
+        print(
             "🔍 [EXTRACT] Extracting Facebook Ads ad insights for account_id "
             f"{account_id} from "
             f"{start_date} to "
             f"{end_date}..."
         )
-        print(msg)
-        logging.info(msg)
 
         account_id_prefixed = (
             account_id if account_id.startswith("act_")
@@ -111,20 +105,13 @@ def extract_ad_insights(
         rows = [dict(row) for row in insights]
         df = pd.DataFrame(rows)
 
-        msg = (
+        print(
             "✅ [EXTRACT] Successfully extracted "
-            f"{len(df)} row(s) of Facebook Ads ad insights for account_id "           
+            f"{len(df)} row(s) of Facebook Ads ad insights for account_id "
             f"{account_id} from "
             f"{start_date} to "
             f"{end_date}."
         )
-        print(msg)
-        logging.info(msg)
-
-        df.retryable = False
-        df.time_elapsed = round(time.time() - start_time, 2)
-        df.rows_input = None
-        df.rows_output = len(df)
 
         return df
 
@@ -138,41 +125,55 @@ def extract_ad_insights(
         except Exception:
             pass
 
-        # Expired token error
+    # Expired token
         if api_error_code == 190:
-            retryable = False
-            raise RuntimeError("❌ [EXTRACT] Failed to extract Facebook Ads ad insights due to token expired or invalid then manual token refresh is required.") from e
+            error = RuntimeError(
+                "❌ [EXTRACT] Failed to extract Facebook Ads ad insights for account_id "
+                f"{account_id} due to expired or invalid access token."
+            )
+            error.retryable = False
+            raise error from e
 
-        # Unexpected retryable error
+    # Retryable API error
         if (
             (http_status and http_status >= 500)
-            or api_error_code in {1, 2, 4, 17, 80000}
+            or api_error_code in {
+                1, 
+                2, 
+                4, 
+                17, 
+                80000
+            }
         ):
-            retryable = True
-            raise RuntimeError(
+            error = RuntimeError(
                 "⚠️ [EXTRACT] Failed to extract Facebook Ads ad insights for account_id "
                 f"{account_id} from "
                 f"{start_date} to "
-                f"{end_date} due to API error then this request is eligible to retry."
-            ) from e
+                f"{end_date} due to API error "
+                f"{e} then this request is eligible to retry."
+            )
+            error.retryable = True
+            raise error from e
 
-        # Unexpected non-retryable error
-        retryable = False
-        raise RuntimeError(
+    # Non-retryable API error
+        error = RuntimeError(
             "❌ [EXTRACT] Failed to extract Facebook Ads ad insights for account_id "
             f"{account_id} from "
             f"{start_date} to "
-            f"{end_date} due to unexpected API error "
+            f"{end_date} due to API error "
             f"{e} then this request is not eligible to retry."
-        ) from e
+        )
+        error.retryable = False
+        raise error from e
 
+    # Unknown non-retryable error
     except Exception as e:
-        # Unknown non-retryable error
-        retryable = False
-        raise RuntimeError(
+        error = RuntimeError(
             "❌ [EXTRACT] Failed to extract Facebook Ads ad insights for account_id "
             f"{account_id} from "
             f"{start_date} to "
-            f"{end_date} due to unknown error "
+            f"{end_date} due to "
             f"{e}."
-        ) from e
+        )
+        error.retryable = False
+        raise error from e
