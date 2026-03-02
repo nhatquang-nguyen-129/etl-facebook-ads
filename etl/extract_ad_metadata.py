@@ -18,14 +18,14 @@ def extract_ad_metadata(
 ) -> pd.DataFrame:
     """
     Extract Facebook Ads ad metadata
-    ---------
+    ---
     Principles:
         1. Initialize Facebook Ads client
         2. Make API call for AdAccount endpoint
         3. Make API call for Ad(ad_id) endpoint
         4. Append extracted JSON data to list[dict]
         5. Enforce List[dict] to DataFrame
-    ---------
+    ---
     Returns:
         1. DataFrame:
             Flattened ad metadata records
@@ -47,12 +47,12 @@ def extract_ad_metadata(
             f"{account_id}..."
         )
 
-        ad_creative_session = FacebookSession(
+        ad_metadata_session = FacebookSession(
             access_token=access_token,
             timeout=180,
         )
 
-        ad_metadata_api = FacebookAdsApi(ad_creative_session)
+        ad_metadata_api = FacebookAdsApi(ad_metadata_session)
 
         print(
             "✅ [EXTRACT] Successfully initialized Facebook Ads client for account_id "
