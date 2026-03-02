@@ -58,12 +58,12 @@ def extract_ad_insights(
             f"{account_id}..."
         )
 
-        ad_creative_session = FacebookSession(
+        ad_insights_session = FacebookSession(
             access_token=access_token,
             timeout=180,
         )
 
-        ad_insights_api = FacebookAdsApi(ad_creative_session)
+        ad_insights_api = FacebookAdsApi(ad_insights_session)
 
         print(
             "✅ [EXTRACT] Successfully initialized Facebook Ads client for account_id "
@@ -124,7 +124,7 @@ def extract_ad_insights(
         except Exception:
             pass
 
-    # Expired token
+        # Expired token
         if api_error_code == 190:
             error = RuntimeError(
                 "❌ [EXTRACT] Failed to extract Facebook Ads ad insights for account_id "
@@ -133,7 +133,7 @@ def extract_ad_insights(
             error.retryable = False
             raise error from e
 
-    # Retryable API error
+        # Retryable API error
         if (
             (http_status and http_status >= 500)
             or api_error_code in {
@@ -154,7 +154,7 @@ def extract_ad_insights(
             error.retryable = True
             raise error from e
 
-    # Non-retryable API error
+        # Non-retryable API error
         error = RuntimeError(
             "❌ [EXTRACT] Failed to extract Facebook Ads ad insights for account_id "
             f"{account_id} from "
@@ -165,7 +165,7 @@ def extract_ad_insights(
         error.retryable = False
         raise error from e
 
-    # Unknown non-retryable error
+        # Unknown non-retryable error
     except Exception as e:
         error = RuntimeError(
             "❌ [EXTRACT] Failed to extract Facebook Ads ad insights for account_id "
