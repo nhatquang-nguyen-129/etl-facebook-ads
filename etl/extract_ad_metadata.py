@@ -68,10 +68,10 @@ def extract_ad_metadata(
         error.retryable = False
         raise error from e
     
-    # Make Facebook Ads API call for ad account
+    # Make Facebook Ads API call for ad account information
     try:
         print(
-            "🔍 [EXTRACT] Extracting Facebook Ads ad account informatio for account_id "
+            "🔍 [EXTRACT] Extracting Facebook Ads ad account information for account_id "
             f"{account_id}..."
         )
 
