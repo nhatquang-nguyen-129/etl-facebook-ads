@@ -162,7 +162,7 @@ def extract_campaign_insights(
         error.retryable = False
         raise error from e
 
-    # Unknown non-retryable error
+        # Unknown non-retryable error
     except Exception as e:
         error = RuntimeError(
             "❌ [EXTRACT] Failed to extract Facebook Ads campaign insights for account_id "
