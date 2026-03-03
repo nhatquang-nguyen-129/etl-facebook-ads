@@ -31,6 +31,7 @@ def extract_campaign_insights(
             Flattened campaign insights records
     """
 
+    # Validate input
     fields = [
         "account_id",
         "campaign_id",
