@@ -69,7 +69,7 @@ def transform_ad_insights(
         "QUALITY_LEAD": "lead",
     }
 
-    # Parse actions column
+    # Parse actions columns
     parsed_actions = []
 
     for x in df.get("actions", []):

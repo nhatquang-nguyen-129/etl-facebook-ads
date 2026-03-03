@@ -3,41 +3,36 @@ from pathlib import Path
 ROOT_FOLDER_LOCATION = Path(__file__).resolve().parents[2]
 sys.path.append(str(ROOT_FOLDER_LOCATION))
 
-import logging
 import json
-import re
 import numpy as np
 import pandas as pd
+import re
 
 def transform_campaign_insights(
     df: pd.DataFrame
 ) -> pd.DataFrame:
     """
     Transform Facebook Ads campaign insights
-    ---------
-    Workflow:
+    ---
+    Principles:
         1. Validate input
         2. Parse actions
         3. Resolve results
         4. Normalize date dimension
         5. Enforce numeric schema
-    ---------
+    ---
     Returns:
         1. DataFrame:
             Enforced campaign insights records
     """
 
-    msg = (
+    print(
         "🔄 [TRANSFORM] Transforming "
         f"{len(df)} row(s) of Facebook Ads campaign insights..."
     )
-    print(msg)
-    logging.info(msg)
 
     if df.empty:
-        msg = "⚠️ [TRANSFORM] Empty Facebook Ads campaign insights then transformation will be suspended."
-        print(msg)
-        logging.warning(msg)
+        print("⚠️ [TRANSFORM] Empty Facebook Ads campaign insights then transformation will be suspended.")
         return df
 
     required_cols = {
@@ -48,7 +43,7 @@ def transform_campaign_insights(
     missing = required_cols - set(df.columns)
     if missing:
         raise ValueError(
-            "❌ [TRANSFORM] Failed to transform Google Ads campaign insights due to missing columns "
+            "❌ [TRANSFORM] Failed to transform Facebook Ads campaign insights due to missing columns "
             f"{missing} then transformation will be suspended."
         )
 
@@ -74,7 +69,7 @@ def transform_campaign_insights(
         "QUALITY_LEAD": "lead",
     }
 
-    # Parse actions column (GIỐNG LEGACY)
+    # Parse action columns
     parsed_actions = []
 
     for x in df.get("actions", []):
@@ -102,7 +97,7 @@ def transform_campaign_insights(
 
     df["actions"] = parsed_actions
 
-    # Resolve result
+    # Parse result columns
     results_value = []
     results_type = []
 
@@ -166,7 +161,7 @@ def transform_campaign_insights(
         .fillna("unknown")
     )
 
-    # Parse performance metrics
+    # Parse performance columns
     messaging_values = []
     purchase_values = []
 
@@ -215,11 +210,9 @@ def transform_campaign_insights(
         errors="ignore"
     )
 
-    msg = (
+    print(
         "✅ [TRANSFORM] Successfully transformed "
         f"{len(df)} row(s) of Facebook Ads campaign insights."
     )
-    print(msg)
-    logging.info(msg)
 
     return df
