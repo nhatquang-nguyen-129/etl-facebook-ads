@@ -36,7 +36,7 @@ def backfill():
         4. Initialize Facebook Ads SDK wrapper exactly once
         5. Dispatch execution to DAG orchestrator
     ---
-    Return:
+    Returns:
         None
     """
 
