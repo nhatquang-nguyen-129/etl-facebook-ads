@@ -40,7 +40,7 @@ def extract_ad_creative(
 
         return pd.DataFrame()
 
-    # Initialize Facebook Ads SDK client
+    # Initialize Facebook Ads client
     try:
         print(
             "🔍 [EXTRACT] Initializing Facebook Ads client with account_id "
