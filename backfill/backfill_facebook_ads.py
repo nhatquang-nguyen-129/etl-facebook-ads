@@ -33,7 +33,7 @@ def backfill():
         1. Resolve execution time window form CLI argument --start_date and --end_date
         2. Validate OS environment variables
         3. Load secrets from GCP Secret Manager
-        4. Initialize Facebook Ads SDK wrapper exactly once
+        4. Resolve advertiser_id and access_token
         5. Dispatch execution to DAG orchestrator
     ---
     Returns:
