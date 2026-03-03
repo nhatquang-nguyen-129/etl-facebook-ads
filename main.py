@@ -35,7 +35,7 @@ def main():
         1. Resolve execution time window from MODE
         2. Read & validate OS environment variables
         3. Load secrets from GCP Secret Manager
-        4. Initialize Facebook Ads SDK wrapper exactly once
+        4. Resolve account_id and access_token
         5. Dispatch execution to DAG orchestrator
     Returns:
         None
