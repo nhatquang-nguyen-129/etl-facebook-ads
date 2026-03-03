@@ -38,14 +38,12 @@ select
 
     campaign.platform,
     campaign.objective,
+    campaign.budget_group,
     campaign.region,
-    campaign.budget_group_1,
-    campaign.budget_group_2,
     campaign.category_level_1,
-    campaign.personnel,
-    campaign.track_group,
-    campaign.pillar_group,
-    campaign.content_group,
+    campaign.track,
+    campaign.pillar,
+    campaign.group,
 
     adset.location,
     adset.gender,
@@ -53,9 +51,9 @@ select
     adset.audience,
     adset.format,
     adset.strategy,
-    adset.type,
-    adset.pillar,
+    adset.angle,
     adset.content,
+    adset.type,
 
     creative.thumbnail_url
 
