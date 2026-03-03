@@ -38,14 +38,12 @@ select
 
     platform,
     objective,
+    budget_group,
     region,
-    budget_group_1,
-    budget_group_2,
     category_level_1,
-    personnel,
-    track_group,
-    pillar_group,
-    content_group,
+    track,
+    pillar,
+    group,
 
     location,
     gender,
@@ -53,7 +51,8 @@ select
     audience,
     format,
     strategy,
-    type,
-    pillar,
-    content
+    angle,
+    content,
+    type
+
 from {{ ref('int_ad_insights') }}
