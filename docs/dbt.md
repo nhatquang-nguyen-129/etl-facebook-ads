@@ -1,11 +1,15 @@
-# Data Build Tool for Facebook Ads SQL Materialization
+# Data Build Tool for Facebook Ads
 
 ## Purpose
 
-- Use **dbt** to build Facebook analytics-ready **materialized tables** in **Google BigQuery**
+- Use **dbt** to build Facebook Ads analytics-ready **materialized tables** in **Google BigQuery**
+
 - Used **dbt** only for **SQL transformations** and all ELT processes are handled upstream
+
 - Join Facebook Ads campaign insights fact tables with campaign metadata dim table
+
 - Join Facebook Ads ad insights fact tables with campaign metadata/adset metadata/ad metadata/ad creative dim tables
+
 - Define final analytical grain and manage model dependencies using `ref()`
 
 ---
@@ -104,7 +108,7 @@ $env:ACCOUNT="your-account"
 dbt build `
   --project-dir dbt `
   --profiles-dir dbt `
-  --select tag:ad
+  --select tag:campaign
 ```
 
 - Run only ad insights
@@ -119,6 +123,8 @@ dbt build `
   --profiles-dir dbt `
   --select tag:ad
 ```
+
+---
 
 ### Deployment with DAGs
 
