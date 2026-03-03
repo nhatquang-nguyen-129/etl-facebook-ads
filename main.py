@@ -1,7 +1,7 @@
 import os
-from pathlib import Path
 import sys
-ROOT_FOLDER_LOCATION = Path(__file__).resolve().parents[0]
+from pathlib import Path
+ROOT_FOLDER_LOCATION = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT_FOLDER_LOCATION))
 
 from datetime import datetime, timedelta
@@ -31,13 +31,13 @@ def main():
     """
     Main Facebook Ads entrypoint
     ---------
-    Workflow:
+    Principles:
         1. Resolve execution time window from MODE
         2. Read & validate OS environment variables
         3. Load secrets from GCP Secret Manager
         4. Initialize Facebook Ads SDK wrapper exactly once
         5. Dispatch execution to DAG orchestrator
-    Return:
+    Returns:
         None
     """
     
