@@ -12,16 +12,14 @@ from google.cloud import bigquery
 class internalGoogleBigqueryLoader:
     """
     Internal Google BigQuery Loader
-    ---------
-    Workflow:
+    ---
+    Principles:
         1. Initialize BigQuery client
         2. Check dataset existence
-        3. Create dataset if not exist
-        4. Check table existence
-        5. Create table if not exist
-        6. Apply INSERT/UPSERT DML
-        7. Write data into table
-    ---------
+        3. Check table existence
+        4. Apply INSERT/UPSERT DML
+        5. Writer data into table
+    ---
     Returns:
         None
     """
