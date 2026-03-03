@@ -1,195 +1,60 @@
-# Multi-thread Execution with Python ThreadPool
+# DAGs for Facebook Ads
 
-## Problem statements
+## Purpose
 
-Multi-thread Execution and Facebook Ads SDK Initialization Strategy
-Background
+- Execute Facebook Ads DAGs using **predefined runtime configurations**
 
-Facebook Ads ETL pipeline supports parallel execution across multiple extract streams:
+- Resolve **execution time window** indirectly via `main.py` instead of `--input_month` via argparse
 
-Campaign insights
+- Designed primarily for **production deployment** on Cloud Run
 
-Ad insights
+- Automatically load **required secrets** from Google Secret Manager
 
-Ad metadata
+- Dispatch execution to the **DAG orchestrator** without exposing manual entrypoints
 
-Ad creatives
+---
 
-Parallelism is required to:
+## Execution
 
-Reduce end-to-end pipeline latency
+### Runtime Contract
 
-Isolate failures between independent extract units
+ - The following environment variables `COMPANY`, `PROJECT`, `DEPARTMENT` and `ACCOUNT` must be provided
 
-Scale horizontally on Cloud Run / Airflow / Kubernetes
+- The DAGS execution time logic is controlled externally by `main.py` with predefined runtime modes
 
-However, naive multi-thread execution can introduce data inconsistency and race conditions if SDK clients are improperly shared.
+- The resolved execution context is then passed to `dags_facebook_ads`
 
-Problem Statement
-Shared SDK client in multi-threaded execution
+---
 
-The Facebook Ads Python SDK maintains internal mutable state, including but not limited to:
+### Secret Management
 
-HTTP session
+- `main.py` initializes Google Secret Manager client to resolves required secrets
 
-Retry counters
+- `main.py` retrieves `secret_account_id` from `{COMPANY}_secret_{DEPARTMENT}_facebook_account_id_{ACCOUNT}`
 
-Pagination cursors
+- `main.py` retrieves `secret_account_name` from `projects/{PROJECT}/secrets/{secret_account_id}/versions/latest`
 
-Request context
+- `main.py` retrieves `secret_token_id` from `{COMPANY}_secret_all_facebook_token_access_user`
 
-Error handling and backoff state
+- `main.py` retrieves `secret_token_name ` from `projects/{PROJECT}/secrets/{secret_token_id}/versions/latest`
 
-When a single global SDK client is initialized and reused across multiple threads:
+---
 
-Threads may overwrite request state of each other
+### Production Deployment
 
-Retry logic from one extract stream can interfere with another
+- This runtime is intended to run inside `Cloud Run` and triggered by `Cloud Scheduler`
 
-Pagination cursors may be corrupted
+- This runtime is technically possible for local execution but not recommended
 
-Failures become non-deterministic and hard to reproduce
+- For manual historical reprocessing, use the `Backfill` module instead
 
-Data may be:
+- Run DAGs for specific `MODE` using CLI
+```bash
+$env:PROJECT="your-gcp-project"
+$env:COMPANY="your-company-in-short"
+$env:DEPARTMENT="your-department"
+$env:ACCOUNT="your-account"
+$env:MODE="your-time-window"
 
-Missing
-
-Duplicated
-
-Incorrectly attributed to the wrong entity (ad_id, creative_id, etc.)
-
-This issue does not always surface immediately, making it especially dangerous in production environments.
-
-Why Sequential Execution Is Not Sufficient
-
-Running extract steps sequentially guarantees consistency but introduces critical drawbacks:
-
-Increased total execution time
-
-Inefficient use of Cloud Run / compute resources
-
-Reduced fault isolation (one failure blocks the entire pipeline)
-
-Therefore, parallel execution is required, but it must be implemented safely.
-
-Design Principle
-
-Each extract unit must own its own Facebook Ads SDK client instance.
-
-This principle applies regardless of whether parallelism is implemented via:
-
-Python threads
-
-Multiprocessing
-
-Cloud Run multiple containers
-
-Airflow tasks
-
-Kubernetes jobs
-
-Architecture Decision
-SDK Initialization Responsibility
-
-main.py does NOT initialize Facebook Ads SDK
-
-Each extract function:
-
-Initializes its own SDK client
-
-Uses the same access token and account_id
-
-Maintains full isolation from other extract units
-
-This shifts SDK lifecycle ownership downstream to the extract layer.
-
-Execution Model
-Incorrect (Shared Client)
-main.py
- └─ FacebookAdsApi.init(...)
- └─ ThreadPoolExecutor
-     ├─ extract_ad_creatives()
-     ├─ extract_ad_metadata()
-
-
-❌ Shared mutable SDK state
-❌ High risk of race conditions
-❌ Non-deterministic failures
-
-Correct (Isolated Clients)
-main.py
- └─ ThreadPoolExecutor
-     ├─ extract_ad_creatives()
-     │    └─ FacebookAdsApi.init(...)
-     ├─ extract_ad_metadata()
-          └─ FacebookAdsApi.init(...)
-
-
-✅ Thread-safe execution
-✅ Independent retry and pagination logic
-✅ Deterministic and reproducible behavior
-
-Why This Works
-
-Facebook Ads access tokens are stateless
-
-Multiple SDK clients can safely authenticate using the same token
-
-SDK initialization cost is negligible compared to:
-
-API calls
-
-Retry backoff
-
-Pagination loops
-
-Each client maintains:
-
-Its own HTTP session
-
-Its own retry lifecycle
-
-Its own error context
-
-Benefits
-Data Consistency
-
-No shared state across extract streams
-
-Guaranteed request isolation
-
-Correct attribution of metrics and metadata
-
-Fault Isolation
-
-Failure in ad creative extraction does not affect ad insights
-
-Retries are scoped to the failing extract unit only
-
-Scalability
-
-Seamless migration to:
-
-Cloud Run parallel containers
-
-Airflow task-level parallelism
-
-Distributed workers
-
-Observability
-
-Cleaner logs
-
-Easier debugging
-
-Clear ownership of failures per extract stream
-
-Final Recommendation
-
-Always initialize Facebook Ads SDK inside extract functions
-
-Never share SDK clients across threads
-
-Treat each extract unit as an isolated execution context
-
-This design ensures correctness first, while preserving performance and scalability of the ETL pipeline.
+python main.py
+```
