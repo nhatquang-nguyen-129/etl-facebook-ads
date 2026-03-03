@@ -75,8 +75,13 @@ def extract_adset_metadata(
             f"{account_id}..."
         )
 
+        account_id_prefixed = (
+            account_id if account_id.startswith("act_")
+            else f"act_{account_id}"
+        )
+
         account_info = AdAccount(
-            f"act_{account_id}",
+            account_id_prefixed,
             api=adset_metadata_api,
         ).api_get(fields=["name"])
 
