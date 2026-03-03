@@ -22,7 +22,7 @@ def extract_campaign_metadata(
     Principles:
         1. Initialize Facebook Ads client
         2. Make API call for AdAccount endpoint
-        3. Make API call for Campaign(campaign_id) endpoin
+        3. Make API call for Campaign(campaign_id) endpoint
         4. Append extracted JSON data to list[dict]
         5. Enforce List[dict] to DataFrame
     ---
@@ -88,8 +88,9 @@ def extract_campaign_metadata(
         account_name = account_info.get("name")
 
         print(
-            "✅ [EXTRACT] Successfully extracted account_name "
-            f"{account_name} for account_id {account_id}."
+            "✅ [EXTRACT] Successfully extracted Facebook Ads account_name "
+            f"{account_name} for account_id "
+            f"{account_id}."
         )
 
     except FacebookRequestError as e:
@@ -105,7 +106,7 @@ def extract_campaign_metadata(
         # Expired token
         if api_error_code == 190:
             error = RuntimeError(
-                "❌ [EXTRACT] Failed to extract account_name for account_id "
+                "❌ [EXTRACT] Failed to extract Facebook Ads account_name for account_id "
                 f"{account_id} due to expired or invalid access token."
             )
             error.retryable = False
@@ -114,37 +115,48 @@ def extract_campaign_metadata(
         # Retryable API error
         if (
             (http_status and http_status >= 500)
-            or api_error_code in {1, 2, 4, 17, 80000}
+            or api_error_code in {
+                1, 
+                2, 
+                4, 
+                17, 
+                80000
+            }
         ):
             error = RuntimeError(
-                "⚠️ [EXTRACT] Failed to extract account_name for account_id "
-                f"{account_id} due to API error {e} then this request is eligible to retry."
+                "⚠️ [EXTRACT] Failed to extract Facebook Ads account_name for account_id "
+                f"{account_id} due to API error "
+                f"{e} then this request is eligible to retry."
             )
             error.retryable = True
             raise error from e
 
         # Non-retryable API error
         error = RuntimeError(
-            "❌ [EXTRACT] Failed to extract account_name for account_id "
-            f"{account_id} due to API error {e} then this request is not eligible to retry."
+            "❌ [EXTRACT] Failed to extract Facebook Ads account_name for account_id "
+            f"{account_id} due to API error "
+            f"{e} then this request is not eligible to retry."
         )
         error.retryable = False
         raise error from e
 
+        # Unknown non-retryable error
     except Exception as e:
         error = RuntimeError(
-            "❌ [EXTRACT] Failed to extract account_name for account_id "
-            f"{account_id} due to {e}."
+            "❌ [EXTRACT] Failed to extract Facebook Ads account_name for account_id "
+            f"{account_id} due to "
+            f"{e}."
         )
         error.retryable = False
         raise error from e
 
-    # Extract campaign metadata
+    # Make Facebook Ads API call for campaign metadata
     rows: list[dict] = []
 
     print(
         "🔍 [EXTRACT] Extracting Facebook Ads campaign metadata for account_id "
-        f"{account_id} with {len(campaign_ids)} campaign_id(s)..."
+        f"{account_id} with "
+        f"{len(campaign_ids)} campaign_id(s)..."
     )
 
     for campaign_id in campaign_ids:
@@ -181,39 +193,49 @@ def extract_campaign_metadata(
             except Exception:
                 pass
 
-            # Expired token
+        # Expired token
             if api_error_code == 190:
                 error = RuntimeError(
-                    "❌ [EXTRACT] Failed to extract campaign metadata for account_id "
+                    "❌ [EXTRACT] Failed to extract Facebook Ads campaign metadata for account_id "
                     f"{account_id} due to expired or invalid access token."
                 )
                 error.retryable = False
                 raise error from e
 
-            # Retryable API error
+        # Retryable API error
             if (
                 (http_status and http_status >= 500)
-                or api_error_code in {1, 2, 4, 17, 80000}
+                or api_error_code in {
+                    1, 
+                    2, 
+                    4, 
+                    17, 
+                    80000
+                }
             ):
                 error = RuntimeError(
-                    "⚠️ [EXTRACT] Failed to extract campaign metadata for campaign_id "
-                    f"{campaign_id} due to API error {e} then this request is eligible to retry."
+                    "⚠️ [EXTRACT] Failed to extract Facebook Ads campaign metadata for campaign_id "
+                    f"{campaign_id} due to API error "
+                    f"{e} then this request is eligible to retry."
                 )
                 error.retryable = True
                 raise error from e
 
-            # Non-retryable API error
+        # Non-retryable API error
             error = RuntimeError(
-                "❌ [EXTRACT] Failed to extract campaign metadata for campaign_id "
-                f"{campaign_id} due to API error {e} then this request is not eligible to retry."
+                "❌ [EXTRACT] Failed to extract Facebook Ads campaign metadata for campaign_id "
+                f"{campaign_id} due to API error "
+                f"{e} then this request is not eligible to retry."
             )
             error.retryable = False
             raise error from e
 
+        # Unknown non-retryable error
         except Exception as e:
             error = RuntimeError(
-                "❌ [EXTRACT] Failed to extract campaign metadata for campaign_id "
-                f"{campaign_id} due to {e}."
+                "❌ [EXTRACT] Failed to extract Facebook Ads campaign metadata for campaign_id "
+                f"{campaign_id} due to "
+                f"{e}."
             )
             error.retryable = False
             raise error from e
