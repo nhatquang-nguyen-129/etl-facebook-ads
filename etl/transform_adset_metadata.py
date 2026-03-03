@@ -16,7 +16,7 @@ def transform_adset_metadata(
         2. Validate required schema columns
         3. Create copy to prevent side effects
         4. Parse structured naming convention
-        5. Enriche DataFrame
+        5. Enrich Dataframe
     ---
     Returns:
         1. DataFrame:
