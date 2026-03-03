@@ -56,6 +56,8 @@
 
 - The transformer fills missing parsed values with `unknown` to preserve schema consistency
 
+---
+
 ## Load
 
 - The loader uses `mode="upsert"` to support idempotent loading and deduplication

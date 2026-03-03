@@ -1,4 +1,4 @@
-# Internal Google BigQuery Loader Plugin for Budget Reconciliation
+# Internal Google BigQuery Loader Plugin for Google Ads
 
 ## Purpose
 
@@ -59,7 +59,7 @@
 
 - The loader automatically maps pandas dtype `datetime` to Google BigQuery type `TIMESTAMP`
 
-- The loader automatically maps pandas dtype `others` to Google BigQuery type `TIMESTAMP`
+- The loader automatically maps pandas dtype `others` to Google BigQuery type `STRING`
 
 - The loader fully supports time partitioning with `PARTITION BY DAY(date)` and clusterting
 
@@ -81,7 +81,7 @@
 
 - With `UPSERT` mode, the loader executes a parameterized `DELETE` query using `UNNEST(@values)` if only one key is provided
 
-- With `UPSERT` mode, the loader executes a `DELETE` statement using an `EXISTS` join condition with a temporary table containing distinct key combinations
+- With `UPSERT` mode, the loader executes a `DELETE` statement using an `EXISTS` join condition with a temporary table
 
 ### Write DataFrame to Google BigQuery
 
