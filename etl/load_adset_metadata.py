@@ -27,7 +27,7 @@ def load_adset_metadata(
     """      
 
     if df.empty:
-        print("⚠️ [LOADER] Empty Facebook Ads adset metadata Dataframe then loading will be suspended.")
+        print("⚠️ [LOADER] Empty Facebook Ads adset metadata then loading will be suspended.")
         return
 
     print(

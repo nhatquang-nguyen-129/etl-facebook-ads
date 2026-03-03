@@ -27,7 +27,7 @@ def load_campaign_insights(
     """    
 
     if df.empty:
-        print("⚠️ [LOADER] Empty Facebook Ads campaign insights Dataframe then loading will be suspended.")
+        print("⚠️ [LOADER] Empty Facebook Ads campaign insights then loading will be suspended.")
         return
 
     print(

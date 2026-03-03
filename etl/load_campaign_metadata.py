@@ -27,7 +27,7 @@ def load_campaign_metadata(
     """      
 
     if df.empty:
-        print("⚠️ [LOADER] Empty Facebook Ads campaign metadata Dataframe then loading will be suspended.")
+        print("⚠️ [LOADER] Empty Facebook Ads campaign metadata then loading will be suspended.")
         return
 
     print(
