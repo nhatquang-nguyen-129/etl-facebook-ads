@@ -1,167 +1,85 @@
-# ETL Architecture and Workflow for Facebook Ads
+# ETL for Facebook Ads
 
 ## Purpose
 
-- Use **dbt** to build Facebook analytics-ready **materialized tables** in **Google BigQuery**
-- Used **dbt** only for **SQL transformations** and all ELT processes are handled upstream
-- Join Facebook Ads campaign insights fact tables with campaign metadata dim table
-- Join Facebook Ads ad insights fact tables with campaign metadata/adset metadata/ad metadata/ad creative dim tables
-- Define final analytical grain and manage model dependencies using `ref()`
+- **Extract** Facebook Ads data from `Facebook Ads API`
+
+- **Transform** raw records into `normalized analytical schema`
+
+- **Load** transformed data into `Google BigQuery` using idempotent `UPSERT` strategy
 
 ---
 
 ## Extract
 
-### Activate Python venv
+- The extractor initializes Facebook Ads client using `FacebookSession` with `access_token`
 
-- Create Python virtual environment if `venv\` folder not exists
-```bash
-python -m venv venv
-```
+- The extractor uses Facebook Marketing API endpoints `AdAccount`, `Campaign`, `AdSet`, `Ad`
 
-- Activate Python virtual environment and check `(venv)` in the terminal
-```bash
-venv/scripts/activate
-```
+- The extractor invokes `.api_get()` for metadata extraction and `.get_insights()` for performance extraction
 
----
+- The extractor enforces insights extraction using `params = {"level": "campaign" | "adset" | "ad"}`
 
-### Install dbt adapter for Google BigQuery
+- The extractor applies date filtering using `params = {"time_range": {"since": start_date, "until": end_date}}`
 
-- Install dbt adapter for Google BigQuery using the terminal
-```bash
-pip install dbt-core dbt-bigquery
-```
+- The extractor transforms Facebook Ads API response objects into flattened `List[dict]` records
 
-- Verify installation and check installed dbt version
-```bash
-dbt --version
-```
+- The extractor converts extracted records into `pandas.DataFrame`
+
+- The extractor propagates structured error metadata using error.retryable flag to support orchestration-level retry logic
+
+- The extractor normalizes account identifiers by enforcing `act_{account_id}` prefix before API invocation
 
 ---
 
-## Structure
+## Transform
 
-### Models folder
+- The transformer normalizes `account_id`, `campaign_id`, `ad_id` to `STRING` type
 
-- `models` is root folder for all dbt models and all logical separation by transformation stage
+- The transformer enforces numeric schema for `impressions` and `clicks` as `INT64`
 
-- `models/stg` is the staging layer providing a clean abstraction over ETL output tables and materialized as `ephemeral` with example:
-```bash
-{{ config(
-    materialized='ephemeral',
-    tags=['stg', 'facebook', 'campaign']
-) }}
-```
+- The transformer converts cost into spend by casting to `INT64`
 
-- `models/int` is the intermediate layer with the responsibilty to combine staging models then join with dimensions and materialized as `ephemeral` with example:
-```bash
-{{ config(
-    materialized='ephemeral',
-    tags=['int', 'facebook', 'campaign']
-) }}
-```
+- The transformer enforces floating-point schema for `result`
 
-- `models/mart` is the final materialization layer and materialized as `table` with example:
-```bash
-{{ config(
-    materialized='table',
-    tags=['mart', 'facebook', 'campaign']
-) }}
-```
+- The transformer normalizes date into `UTC` timestamp and floors to daily granularity
 
----
+- The transformer derives `year` dimension from normalized date
 
-### Config file
+- The transformer derives `month` dimension using `YYYY-MM` format from normalized date
 
-- `dbt_project.yml` is a required file for all dbt project which contains project operation instructions
+- The transformer enriches a constant platform column with value `Facebook`
 
-- `profiles.yml` is a required file which contains the connection details for the data warehouse
+- The transformer parses `campaign_name` using underscore `_` delimiter to derive structured dimensions
 
----
+- The transformer parses `adset_name` using underscore `_` delimiter to derive structured dimensions
 
-## Deployment
+- The transformer fills missing parsed values with `unknown` to preserve schema consistency
 
-### Manual Deployment
+## Load
 
-- Complie only with no execution
-```bash
-dbt compile
-```
+- The loader uses `mode="upsert"` to support idempotent loading and deduplication
 
-- Run all models
-```bash
-dbt build
-```
+- The loader uses primary key(s) defined in `keys=[...]` to overwrite existing matching records
 
-- Run only campaign insights
-```bash
-$env:PROJECT="your-gcp-project"
-$env:COMPANY="your-company-in-short"
-$env:DEPARTMENT="your-department"
-$env:ACCOUNT="your-account"
+- The loader delegates execution to `internalGoogleBigqueryLoader` for standardized BigQuery operations
 
-dbt build `
-  --project-dir dbt `
-  --profiles-dir dbt `
-  --select tag:ad
-```
+- The loader uses `keys=["date"]` to deduplicate campaign and ad insights records at daily granularity
 
-- Run only ad insights
-```bash
-$env:PROJECT="your-gcp-project"
-$env:COMPANY="your-company-in-short"
-$env:DEPARTMENT="your-department"
-$env:ACCOUNT="your-account"
+- The loader applies table partitioning on `partition={"field": "date"}` for campaign and ad insights
 
-dbt build `
-  --project-dir dbt `
-  --profiles-dir dbt `
-  --select tag:ad
-```
+- The loader applies table clustering on `cluster=["campaign_id"]` for campaign and insights
 
-### Deployment with DAGs
+- The loader uses composite primary keys `keys=["account_id", "campaign_id"]` for campaign metadata
 
-- Using Python `subprocess` to call dbt for each stream
-```bash
-dbt_facebook_ads(
-    google_cloud_project=PROJECT,
-    select="campaign",
-)
-```
+- The loader uses composite primary keys `keys=["account_id", "adset_id"]` for adset metadata
 
-## Main
+- The loader uses composite primary keys `keys=["account_id", "ad_id"]` for ad metadata
 
-### Resolve execution time window
+- The loader applies table clustering on `cluster=["campaign_id"]` for campaign metadata
 
-- `main.py` will not start if any of the required environment variables are missing
-- Resolve `MODE` into `start_date` and `end_date` then format them as `YYYY-MM-DD`
-- Unsupported `MODE` values will immediately fail execution
-- `last3days` will be resolved into `start_date` and `end_date` which is the last 3 days **except** yesterday
-- `last7days` will be resolved into `start_date` and `end_date` which is the last 7 days **except** yesterday
-- `thismonth` will be resolved into `start_date` and `end_date` from the first day of the current month to today
+- The loader applies table clustering on `cluster=["adset_id"]` for campaign metadata
 
-### Initialize Google Secret Manager client
-- Create a single `SecretManagerServiceClient` to intialize global client
-- Resolve Facebook Ads `account_id` from secret `{COMPANY}_secret_{DEPARTMENT}_facebook_account_id_{ACCOUNT}`
-- Resolve Facebook Ads `access_token` from secret `{COMPANY}_secret_all_facebook_token_access_user`
-- Secrets are always fetched from `versions/latest`
+- The loader applies table clustering on `cluster=["ad_id"]` for ad metadata
 
-### Initialize Facebook Ads SDK
-- Create a sing `FacebookAdsApi.init` to initialize global client
-- Set `timeout` to `180` for long-running API calls
-
-### Dispatch execution to DAG orchestrator
-- Call `dags_facebook_ads` with `account_id`, `start_date` and `end_date`
-- All retry logic, cooldowns, batching and ETL orchestration are handled **inside** DAGs
-- CLI usage example for main entrypoint: 
-
-```bash
-$env:PROJECT="seer-digital-ads"
-$env:COMPANY="kids"
-$env:DEPARTMENT="marketing"
-$env:ACCOUNT="main"
-$env:MODE="last3days"
-
-python main.py
-```
+- The loader does not apply table partitioning for campaign, adset or ad metadata
