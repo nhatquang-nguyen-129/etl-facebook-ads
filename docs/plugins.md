@@ -1,4 +1,4 @@
-# Internal Google BigQuery Loader Plugin for Google Ads
+# Internal Google BigQuery Loader Plugin for Facebook Ads
 
 ## Purpose
 
