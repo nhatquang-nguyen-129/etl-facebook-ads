@@ -3,7 +3,6 @@ from pathlib import Path
 ROOT_FOLDER_LOCATION = Path(__file__).resolve().parents[2]
 sys.path.append(str(ROOT_FOLDER_LOCATION))
 
-import logging
 import pandas as pd
 
 def transform_adset_metadata(
@@ -11,28 +10,26 @@ def transform_adset_metadata(
 ) -> pd.DataFrame:
     """
     Transform Facebook Ads adset metadata
-    ---------
-    Workflow:
-        1. Validate input
-        2. Validate missing columns
-        3. Assign enriched columns
-    ---------
+    ---
+    Principles:
+        1. Validate input Dataframe
+        2. Validate required schema columns
+        3. Create copy to prevent side effects
+        4. Parse structured naming convention
+        5. Enriche DataFrame
+    ---
     Returns:
         1. DataFrame:
             Enforced adset metadata records
     """
 
-    msg = (
+    print(
         "🔄 [TRANSFORM] Transforming "
         f"{len(df)} row(s) of Facebook Ads adset metadata..."
     )
-    print(msg)
-    logging.info(msg)
 
     if df.empty:
-        msg = "⚠️ [TRANSFORM] Empty adset metadata then transformation will be suspended."
-        print(msg)
-        logging.warning(msg)
+        print("⚠️ [TRANSFORM] Empty Facebook Ads adset metadata then transformation will be suspended.")
         return df
 
     required_cols = {
@@ -56,16 +53,14 @@ def transform_adset_metadata(
         audience=lambda df: df["adset_name"].fillna("").str.split("|").str[3].fillna("unknown"),
         format=lambda df: df["adset_name"].fillna("").str.split("|").str[4].fillna("unknown"),
         strategy=lambda df: df["adset_name"].fillna("").str.split("|").str[5].fillna("unknown"),
-        type=lambda df: df["adset_name"].fillna("").str.split("|").str[6].fillna("unknown"),
-        pillar=lambda df: df["adset_name"].fillna("").str.split("|").str[7].fillna("unknown"),
-        content=lambda df: df["adset_name"].fillna("").str.split("|").str[8].fillna("unknown")
+        angle=lambda df: df["adset_name"].fillna("").str.split("|").str[6].fillna("unknown"),
+        content=lambda df: df["adset_name"].fillna("").str.split("|").str[7].fillna("unknown"),
+        type=lambda df: df["adset_name"].fillna("").str.split("|").str[8].fillna("unknown")
     )  
 
-    msg = (
+    print(
         "✅ [TRANSFORM] Successfully transformed "
         f"{len(df)} row(s) of Facebook Ads adset metadata."
     )
-    print(msg)
-    logging.info(msg)
 
     return df
