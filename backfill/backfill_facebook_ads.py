@@ -142,7 +142,7 @@ def backfill():
         )
 
         secret_token_response = google_secret_client.access_secret_version(
-            name=secret_token_response
+            name=secret_token_name
         )
         access_token = secret_token_response.payload.data.decode("utf-8")
         
@@ -156,7 +156,7 @@ def backfill():
 
 # Execute DAGS
     dags_facebook_ads(
-        access_token==access_token,
+        access_token=access_token,
         account_id=account_id,
         start_date=start_date,
         end_date=end_date
