@@ -40,6 +40,5 @@ select
     category_level_1,
     track,
     pillar,
-    group
-
+    `group`
 from {{ ref('int_campaign_insights') }}
