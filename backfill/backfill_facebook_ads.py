@@ -68,7 +68,7 @@ def backfill():
     if start_date > end_date:
         raise ValueError("❌ [BACKFILL] Failed to execute Facebook Ads backfill due to start_date must be less than or equal to end_date.")
 
-    msg = (
+    print(
         "🔄 [BACKFILL] Triggering to execute Facebook Ads backfill for "
         f"{ACCOUNT} account of "
         f"{DEPARTMENT} department in "
