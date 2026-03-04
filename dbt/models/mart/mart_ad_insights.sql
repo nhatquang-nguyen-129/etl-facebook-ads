@@ -43,16 +43,16 @@ select
     category_level_1,
     track,
     pillar,
-    group,
+    `group`,
 
     location,
     gender,
     age,
     audience,
-    format,
+    `format`,
     strategy,
     angle,
     content,
-    type
+    `type`
 
 from {{ ref('int_ad_insights') }}
