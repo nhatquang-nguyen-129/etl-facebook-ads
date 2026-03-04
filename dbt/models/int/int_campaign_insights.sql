@@ -42,7 +42,7 @@ select
     campaign.category_level_1,
     campaign.track,
     campaign.pillar,
-    campaign.group
+    campaign.`group`
 
 from {{ ref('stg_campaign_insights') }} insights
 left join `{{ target.project }}.{{ var('company') }}_dataset_facebook_api_raw.{{ var('company') }}_table_facebook_{{ var('department') }}_{{ var('account') }}_campaign_metadata` campaign
