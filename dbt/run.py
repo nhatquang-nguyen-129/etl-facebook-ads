@@ -39,12 +39,19 @@ def dbt_facebook_ads(
     )
 
     try:
-        subprocess.run(
+        result = subprocess.run(
             cmd,
             cwd="dbt",
             env=os.environ,
             check=True,
+            capture_output=True,
+            text=True,
         )
+
+        print(result.stdout)
+
+        if result.stderr:
+            print(result.stderr)
 
         print(
             "✅ [DBT] Successfully executed dbt build for Facebook Ads "
