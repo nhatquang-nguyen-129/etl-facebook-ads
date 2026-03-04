@@ -44,7 +44,7 @@ gcloud projects list
 
 - Set default Google Cloud project for Google BigQuery and quota billing
 ```bash
-gcloud config set project YOUR_GOOGLE_CLOUD_PROJECT_ID
+gcloud auth application-default set-quota-project YOUR_GOOGLE_CLOUD_PROJECT_ID
 ```
 
 - Check Google Cloud quota project attached to ADC
