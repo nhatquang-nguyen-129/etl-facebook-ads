@@ -43,17 +43,17 @@ select
     campaign.category_level_1,
     campaign.track,
     campaign.pillar,
-    campaign.group,
+    campaign.`group`,
 
     adset.location,
     adset.gender,
     adset.age,
     adset.audience,
-    adset.format,
+    adset.`format`,
     adset.strategy,
     adset.angle,
     adset.content,
-    adset.type,
+    adset.`type`,
 
     creative.thumbnail_url
 
