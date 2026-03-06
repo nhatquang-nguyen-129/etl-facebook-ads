@@ -186,11 +186,12 @@ def dags_ad_insights(
         )
         return
 
-    # Extract
     remaining_ad_ids = list(total_ad_ids)
     dfs_ad_metadata = []
 
     for attempt in range(1, DAGS_AD_ATTEMPTS + 1):
+
+    # Extract
         print(
             "🔄 [DAGS] Trigger to extract Facebook Ads ad metadata for "
             f"{len(remaining_ad_ids)} ad_id(s) in "
